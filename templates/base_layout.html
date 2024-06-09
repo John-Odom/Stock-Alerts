@@ -1,0 +1,39 @@
+{% load static %}
+<html>
+    <head>
+        <link rel="stylesheet" href="{% static 'styles.css' %}">
+    </head>
+    <body>
+        <header>
+
+            <div class="navbar">
+                <h1>NAVBAR</h1>
+                <nav>
+                    <ul>
+                        {% if user.is_authenticated %}
+                        <li>
+                            <form class="logout-link" action="{% url 'accounts:logout' %}" method="post">
+                                {% csrf_token %}
+                                <input type="submit" value="Logout">
+                            </form>
+                        </li>
+                            <li>
+                                <a href=" {% url 'articles:create' %}">Create Article</a>
+                            </li>
+                            {% else %}
+                            <li>
+                                <a href="{% url 'accounts:login' %}">Login</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'accounts:signup' %}">Signup</a>
+                            </li>
+                            {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </heSader>
+        {% block content %}
+
+        {% endblock %}
+    </body>
+</html>

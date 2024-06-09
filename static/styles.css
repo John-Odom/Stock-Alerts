@@ -1,0 +1,9 @@
+body {
+    background: transparent;
+    margin: 0;
+}
+
+.navbar {
+    border-bottom: 1px solid black;
+}
+
