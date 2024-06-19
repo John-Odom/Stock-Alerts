@@ -23,6 +23,6 @@ urlpatterns = [
     path('', article_views.article_list, name='homepage'),
     path('', include('playground.urls'), name='articles'),
     path('account/', include('accounts.urls')),
-
+    path('stocks/', include('stocks.urls')),
 ]
 

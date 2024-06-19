@@ -1,0 +1,52 @@
+{% extends 'base_layout.html' %}
+
+{% block content %}
+
+<h1>Search for Stock Information</h1>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Search</button>
+</form>
+
+{% if error_message %}
+    <p style="color: red;">{{ error_message }}</p>
+{% endif %}
+
+{% if ticker_info %}
+    <h2>Stock Information for {{ form.cleaned_data.ticker }}</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Ticker</th>
+                <th>Name</th>
+                <th>Market</th>
+                <th>Locale</th>
+                <th>Type</th>
+                <th>Active</th>
+                <th>Detail</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stock in ticker_info %}
+            <tr>
+                <td>{{ stock.ticker }}</td>
+                <td>{{ stock.name }}</td>
+                <td>{{ stock.market }}</td>
+                <td>{{ stock.locale }}</td>
+                <td>{{ stock.type }}</td>
+                <td>{{ stock.active }}</td>
+                <td>
+                    <form class="form" action="{% url 'stocks:stock_detail' slug=stock.ticker %}" method="get">
+                        <!-- {% csrf_token %} -->
+                        <input type="hidden" name="days" value="15">
+                        <input type="submit" value="15 day anaylsis">
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+{% endblock %}
