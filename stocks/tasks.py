@@ -3,6 +3,7 @@ from celery import shared_task
 from .models import Alert
 import os
 from dotenv import load_dotenv
+from .utils import send_alert_email
 import requests
 import time
 
@@ -38,5 +39,5 @@ def morning_stock_check():
                 alert_recommendations.append(alert.symbol)
         time.sleep(10) 
     # CAN set up twilio or a similar service to receive texts or emails 
-    print("ALERT RECOMMENDATIONS: " + ', '.join(alert_recommendations))
+    send_alert_email('john.osborne.odom@gmail.com', 'BUY', "ALERT RECOMMENDATIONS: " + ', '.join(alert_recommendations))
     # return alert_recommendations
