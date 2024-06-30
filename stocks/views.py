@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import matplotlib.pyplot as plt
 import urllib, base64
 import io
+from io import BytesIO
 from datetime import date, datetime, timedelta
 from django.contrib.auth.decorators import login_required
 from .forms import StockTickerForm, DateRangeForm, AlertForm
@@ -66,12 +67,23 @@ def stock_detail(request, slug):
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
-        uri = generate_stock_chart(data)
+        stock = info_query(slug)
+        financials = financials_query(slug)
+        print(stock['name'])
         return render(request, 'stock_detail.html', 
-                      {'chart_uri': uri, 
+                      {'chart_uri': generate_stock_chart(data), 
                        'form': form,
                        'alert_form': alert_form,
-                       'stock': slug})
+                       'name': stock['name'],
+                       'price': price(data),
+                       'description': stock['description'],
+                       'state': stock['address']['state'],
+                       'market_cap':"${:,.2f}".format(stock['market_cap']),
+                       'shares_outstanding': stock['share_class_shares_outstanding'],
+                       'ticker': stock['ticker'],
+                       'eps_graph': stock_eps(financials),
+                       'pe_graph': stock_pe_ratios(financials)
+                       })
     except requests.exceptions.RequestException as e:
         return JsonResponse({'error': str(e)}, status=500)
     
@@ -81,6 +93,97 @@ def alerts(request):
     return render(request, 'alerts.html', {'alerts': alerts})
     
     
+def info_query(slug):
+    url = f"https://api.polygon.io/v3/reference/tickers/{slug}?apiKey=i91hbXrlrH8yM71UexYN_I4nsRX7pKir"
+    response = requests.get(url)  
+    return response.json()['results']
+
+def financials_query(slug):
+    url = f"https://api.polygon.io/vX/reference/financials?ticker={slug}&limit=20&timeframe=quarterly&apiKey=i91hbXrlrH8yM71UexYN_I4nsRX7pKir"
+    # url = f"https://api.polygon.io/v3/reference/tickers/{slug}?apiKey=i91hbXrlrH8yM71UexYN_I4nsRX7pKir"
+    response = requests.get(url)  
+    
+    return response.json()['results']
+
+def price(data):
+
+    results = data.get('results', [])
+    if len(results) > 0:
+        last_close = results[-1]
+        return f"${last_close['c']}"
+    else:
+        return "Unknown"
+
+def stock_eps(financials):
+    eps_values = []
+    dates = []
+    financials = sorted(financials, key=lambda x: datetime.strptime(x['start_date'], '%Y-%m-%d'))
+
+    for item in financials:
+
+        financial_info = item.get('financials', {})
+        income_statement = financial_info.get('income_statement', {})
+        basic_eps = income_statement.get('basic_earnings_per_share', {}).get('value', None)
+        if basic_eps is not None:
+            eps_values.append(basic_eps)
+            dates.append(item.get('start_date'))
+    
+    # Generate the chart
+    plt.figure(figsize=(10, 5))
+    plt.plot(dates, eps_values, marker='o')
+    plt.title('EPS - Last 20 Quarters')
+    plt.xlabel('Date')
+    plt.ylabel('EPS')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    
+    # Save the chart to a BytesIO object
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    image_png = buffer.getvalue()
+    buffer.close()
+    
+    # Encode the image to base64 string
+    graph = base64.b64encode(image_png)
+    return graph.decode('utf-8')
+
+def stock_pe_ratios(financials):
+    pe_ratios = []
+    dates = []
+    financials = sorted(financials, key=lambda x: datetime.strptime(x['start_date'], '%Y-%m-%d'))
+
+    for item in financials:
+        financial_info = item.get('financials', {})
+        income_statement = financial_info.get('income_statement', {})
+        basic_eps = income_statement.get('basic_earnings_per_share', {}).get('value', None)
+        revenues = income_statement.get('revenues', {}).get('value', None)
+        
+        if basic_eps and revenues:
+            pe_ratio = revenues / basic_eps
+            pe_ratios.append(pe_ratio)
+            dates.append(item.get('start_date'))
+    
+    # Generate the chart
+    plt.figure(figsize=(10, 5))
+    plt.plot(dates, pe_ratios, marker='o')
+    plt.title(f'PE Ratio - Last 20 Quarters')
+    plt.xlabel('Date')
+    plt.ylabel('PE Ratio')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    
+    # Save the chart to a BytesIO object
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    image_png = buffer.getvalue()
+    buffer.close()
+    
+    # Encode the image to base64 string
+    graph = base64.b64encode(image_png)
+    return graph.decode('utf-8')
+
 def generate_stock_chart(data):
     stock_values = [item['c'] for item in data['results']]
     x_values = range(len(stock_values))
@@ -107,3 +210,8 @@ def fetch_stock_data(start_date, end_date):
     if response.status_code == 200:
         return response.json()
     return None
+
+
+
+
+# {'ticker': 'NVDA', 'name': 'Nvidia Corp', 'market': 'stocks', 'locale': 'us', 'primary_exchange': 'XNAS', 'type': 'CS', 'active': True, 'currency_name': 'usd', 'cik': '0001045810', 'composite_figi': 'BBG000BBJQV0', 'share_class_figi': 'BBG001S5TZJ6', 'market_cap': 3038879166973.8003, 'phone_number': '408-486-2000', 'address': {'address1': '2788 SAN TOMAS EXPRESSWAY', 'city': 'SANTA CLARA', 'state': 'CA', 'postal_code': '95051'}, 'description': 'Nvidia is a leading developer of graphics processing units. Traditionally, GPUs were used to enhance the experience on computing platforms, most notably in gaming applications on PCs. GPU use cases have since emerged as important semiconductors used in artificial intelligence. Nvidia not only offers AI GPUs, but also a software platform, Cuda, used for AI model development and training. Nvidia is also expanding its data center networking solutions, helping to tie GPUs together to handle complex workloads.', 'sic_code': '3674', 'sic_description': 'SEMICONDUCTORS & RELATED DEVICES', 'ticker_root': 'NVDA', 'homepage_url': 'https://www.nvidia.com', 'total_employees': 29600, 'list_date': '1999-01-22', 'branding': {'logo_url': 'https://api.polygon.io/v1/reference/company-branding/bnZpZGlhLmNvbQ/images/2024-06-01_logo.svg', 'icon_url': 'https://api.polygon.io/v1/reference/company-branding/bnZpZGlhLmNvbQ/images/2024-06-01_icon.png'}, 'share_class_shares_outstanding': 24598340000, 'weighted_shares_outstanding': 24598341970, 'round_lot': 100}
