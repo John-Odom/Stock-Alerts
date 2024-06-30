@@ -1,0 +1,18 @@
+{% extends 'base_layout.html' %}
+
+{% block content %}
+
+<div>
+    <h1>My Alerts</h1>
+    {% if alerts %}
+        <ul>
+            {% for alert in alerts %}
+                <li>{{ alert.symbol }} - {{ alert.price }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>You have no alerts.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

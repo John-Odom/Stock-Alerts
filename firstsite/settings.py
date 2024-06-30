@@ -37,8 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
+    'django.contrib.staticfiles', 
+
+    'background_task',
     'playground',
+    'celery',
+    'django_celery_beat',
     'accounts',
     'stocks'
 ]
@@ -133,3 +137,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL='/media/'
 
 MEDIA_ROOT=os.path.join(BASE_DIR, 'media')
+
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use your broker URL
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Use your result backend URL
+
+CELERY_BEAT_SCHEDULE = {
+    # UNCOMMENT WHEN WEALTHY LOL
+    # 'when-wealthy-task': {
+    #     'task': 'stocks.tasks.when_wealthy',
+    #     'schedule': 60.0,  # every ten minutes
+    # },
+
+    'morning_stock_check': {
+        'task': 'stocks.tasks.morning_stock_check',
+        'schedule': 60.0,  # every ten minutes
+    },
+}

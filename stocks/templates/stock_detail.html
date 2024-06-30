@@ -20,6 +20,14 @@
 </form>
 
 
+<h2>Set Alert</h2>
+<form method="post" action="">
+    {% csrf_token %}
+    {{ alert_form.as_p }}
+    <button type="submit">Set Alert</button>
+</form>
+
+
 <img src="data:image/png;base64,{{ chart_uri }}" />
 
 {% endblock %}

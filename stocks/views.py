@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 import requests
 import ipdb
@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import urllib, base64
 import io
 from datetime import date, datetime, timedelta
-from .forms import StockTickerForm, DateRangeForm
+from django.contrib.auth.decorators import login_required
+from .forms import StockTickerForm, DateRangeForm, AlertForm
+from .models import Alert
 
 # Create your views here.
 def stock_index_view(request):
@@ -41,13 +43,24 @@ def stock_detail(request, slug):
     end_date = request.GET.get('end_date', None)
     today = date.today().strftime("%Y-%m-%d")
     form = DateRangeForm()
-    if(days):
-        days_ago =  (datetime.now() - timedelta(days=int(days))).strftime('%Y-%m-%d')
+    alert_form = AlertForm()
+    
+    if request.method == 'POST':
+        alert_form = AlertForm(request.POST)
+        if alert_form.is_valid():
+            alert = alert_form.save(commit=False)
+            alert.user = request.user
+            alert.symbol = slug
+            alert.save()
+            return redirect('stocks:alerts')
+    
+    if days:
+        days_ago = (datetime.now() - timedelta(days=int(days))).strftime('%Y-%m-%d')
         url = "https://api.polygon.io/v2/aggs/ticker/" + slug + "/range/1/day/" + days_ago + '/' + today + "?sort=asc&apiKey=" + os.getenv('POLYGON_KEY')
     elif(end_date and start_date):
         url = "https://api.polygon.io/v2/aggs/ticker/" + slug + "/range/1/day/" + start_date + '/' + end_date + "?sort=asc&apiKey=" + os.getenv('POLYGON_KEY')
     else: 
-        url = "https://api.polygon.io/v2/aggs/ticker/" + slug + "/range/1/day/2023-03-13/2024-03-14?sort=asc&apiKey=" + os.getenv('POLYGON_KEY')
+        url = "https://api.polygon.io/v2/aggs/ticker/" + slug + "/range/1/day/2023-03-13/2025-06-14?sort=asc&apiKey=" + os.getenv('POLYGON_KEY')
 
     try:
         response = requests.get(url)
@@ -57,9 +70,16 @@ def stock_detail(request, slug):
         return render(request, 'stock_detail.html', 
                       {'chart_uri': uri, 
                        'form': form,
+                       'alert_form': alert_form,
                        'stock': slug})
     except requests.exceptions.RequestException as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+@login_required(login_url="/account/login")
+def alerts(request):
+    alerts = Alert.objects.filter(user=request.user)
+    return render(request, 'alerts.html', {'alerts': alerts})
+    
     
 def generate_stock_chart(data):
     stock_values = [item['c'] for item in data['results']]
