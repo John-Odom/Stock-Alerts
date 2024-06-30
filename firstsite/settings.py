@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-
+import pytz
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -143,19 +143,6 @@ MEDIA_ROOT=os.path.join(BASE_DIR, 'media')
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use your broker URL
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Use your result backend URL
-
-CELERY_BEAT_SCHEDULE = {
-    # UNCOMMENT WHEN WEALTHY LOL
-    # 'when-wealthy-task': {
-    #     'task': 'stocks.tasks.when_wealthy',
-    #     'schedule': 60.0,  # every ten minutes
-    # },
-
-    'morning_stock_check': {
-        'task': 'stocks.tasks.morning_stock_check',
-        'schedule': 60.0,  # every ten minutes
-    },
-}
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
