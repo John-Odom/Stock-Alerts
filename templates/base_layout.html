@@ -11,23 +11,26 @@
                 <nav>
                     <ul>
                         {% if user.is_authenticated %}
-                        <li>
-                            <form class="logout-link" action="{% url 'accounts:logout' %}" method="post">
-                                {% csrf_token %}
-                                <input type="submit" value="Logout">
-                            </form>
-                        </li>
+                            <li>
+                                <a href=" {% url 'stocks:stock_index' %}">Stock Search</a>
+                            </li>
                             <li>
                                 <a href=" {% url 'stocks:alerts' %}">View Alerts</a>
                             </li>
-                            {% else %}
+                            <li>
+                                <form class="logout-link" action="{% url 'accounts:logout' %}" method="post">
+                                    {% csrf_token %}
+                                    <input type="submit" value="Logout">
+                                </form>
+                            </li>
+                        {% else %}
                             <li>
                                 <a href="{% url 'accounts:login' %}">Login</a>
                             </li>
                             <li>
                                 <a href="{% url 'accounts:signup' %}">Signup</a>
                             </li>
-                            {% endif %}
+                        {% endif %}
                     </ul>
                 </nav>
             </div>

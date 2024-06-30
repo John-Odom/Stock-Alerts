@@ -37,7 +37,7 @@ def morning_stock_check():
             print(response_json['results'][0])
             if(alert.price > response_json['results'][0]['c']):
                 alert_recommendations.append(alert.symbol)
-        time.sleep(10) 
+        time.sleep(60) 
     # CAN set up twilio or a similar service to receive texts or emails 
     send_alert_email('john.osborne.odom@gmail.com', 'BUY', "ALERT RECOMMENDATIONS: " + ', '.join(alert_recommendations))
     # return alert_recommendations
