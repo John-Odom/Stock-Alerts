@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 import requests
 import ipdb
@@ -81,12 +81,20 @@ def stock_detail(request, slug):
                        'market_cap':"${:,.2f}".format(stock['market_cap']),
                        'shares_outstanding': stock['share_class_shares_outstanding'],
                        'ticker': stock['ticker'],
+                       'alerts': request.user.alerts.filter(symbol=slug),
                        'eps_graph': stock_eps(financials),
                        'pe_graph': stock_pe_ratios(financials)
                        })
     except requests.exceptions.RequestException as e:
         return JsonResponse({'error': str(e)}, status=500)
-    
+
+
+def delete_alert(request, id):
+    if request.method == 'POST':
+        alert = get_object_or_404(Alert, id=id)
+        alert.delete()
+    return redirect('stocks:alerts')  # Replace 'alerts_view' with the name of your alerts view
+
 @login_required(login_url="/account/login")
 def alerts(request):
     alerts = Alert.objects.filter(user=request.user)

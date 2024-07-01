@@ -39,6 +39,17 @@
     <button type="submit">Set Alert</button>
 </form>
 
+<h2>Alerts</h2>
+{% if alerts %}
+    {%for alert in alerts%}
+        Buy Price - {{alert.price}}
+        <form method="post" action="{% url 'stocks:delete_alert' alert.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit">Delete</button>
+        </form>
+    {%endfor%}
+{%endif%}
+
 <img src="data:image/png;base64,{{ chart_uri }}" />
 
 

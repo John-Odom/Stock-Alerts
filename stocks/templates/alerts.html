@@ -7,7 +7,15 @@
     {% if alerts %}
         <ul>
             {% for alert in alerts %}
-                <li>{{ alert.symbol }} - {{ alert.price }}</li>
+                <li>
+                    <a href="{% url 'stocks:stock_detail' alert.symbol %}">
+                        {{ alert.symbol }} - {{ alert.price }}
+                    </a>
+                    <form method="post" action="{% url 'stocks:delete_alert' alert.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit">Delete</button>
+                    </form>
+                </li>
             {% endfor %}
         </ul>
     {% else %}
