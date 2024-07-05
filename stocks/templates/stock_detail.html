@@ -58,8 +58,21 @@
 <img src="data:image/png;base64,{{ eps_graph }}" />
 
 
-<!-- <h1> PE RATIO </h1>
+<h1> PE RATIO </h1>
 <canvas id="peRatioChart" width="400" height="200"></canvas>
-<img src="data:image/png;base64,{{ pe_graph }}" /> -->
+<img src="data:image/png;base64,{{ pe_graph }}" />
+
+
+<h1>NEWS</h1>
+{% if news %}
+    <div class="articles">
+        {%for article in news%}
+            <div class="article">
+                <h3>{{article.title}}</h3>
+                <img src="{{ article.image_url }}" />
+            </div>
+        {%endfor%}
+    </div>
+{%endif%}
 
 {% endblock %}

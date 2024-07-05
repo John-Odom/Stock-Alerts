@@ -120,3 +120,40 @@ table.stock-details tr:hover {
         width: 100%;
     }
 }
+
+
+
+/* news articles on detail page */
+
+.articles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Space between articles */
+    justify-content: center; /* Center the articles */
+    padding: 20px;
+}
+
+.article {
+    flex: 1 1 300px; /* Grow and shrink, with a base width of 300px */
+    max-width: 400px; /* Max width for each article */
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.article:hover {
+    transform: translateY(-5px);
+}
+
+.article h3 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+.article img {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+}

@@ -12,6 +12,7 @@ from datetime import date, datetime, timedelta
 from django.contrib.auth.decorators import login_required
 from .forms import StockTickerForm, DateRangeForm, AlertForm
 from .models import Alert
+from .stock_split import StockSplit
 
 # Create your views here.
 def stock_index_view(request):
@@ -68,6 +69,7 @@ def stock_detail(request, slug):
         response.raise_for_status()
         data = response.json()
         stock = info_query(slug)
+        splits = stock_splits(slug)
         financials = financials_query(slug)
         print(stock['name'])
         return render(request, 'stock_detail.html', 
@@ -82,18 +84,35 @@ def stock_detail(request, slug):
                        'shares_outstanding': stock['share_class_shares_outstanding'],
                        'ticker': stock['ticker'],
                        'alerts': request.user.alerts.filter(symbol=slug),
-                       'eps_graph': stock_eps(financials),
-                       'pe_graph': stock_pe_ratios(financials)
+                       'eps_graph': stock_eps(financials, splits),
+                       'pe_ratio': calculate_pe_ratio(financials),
+                       'news': getStockNews(slug)
                        })
     except requests.exceptions.RequestException as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+def stock_splits(slug):
+    url = f"https://api.polygon.io/v3/reference/splits?ticker={slug}&limit=10&apiKey={os.getenv('POLYGON_KEY')}"
+    response = requests.get(url)
+    splits = []
+    for stock_split in response.json()['results']:
+        splits.append(StockSplit(date= stock_split['execution_date'], ratio=(stock_split['split_to'] / stock_split['split_from'])))
+    
+    # ipdb.set_trace()
+    return splits
 
 def delete_alert(request, id):
     if request.method == 'POST':
         alert = get_object_or_404(Alert, id=id)
         alert.delete()
     return redirect('stocks:alerts')  # Replace 'alerts_view' with the name of your alerts view
+
+def getStockNews(slug):
+    url = f"https://api.polygon.io/v2/reference/news?ticker={slug}&limit=10&apiKey=i91hbXrlrH8yM71UexYN_I4nsRX7pKir"
+    response = requests.get(url)
+
+    return response.json()['results']
 
 @login_required(login_url="/account/login")
 def alerts(request):
@@ -122,19 +141,31 @@ def price(data):
     else:
         return "Unknown"
 
-def stock_eps(financials):
+def stock_eps(financials, splits):
     eps_values = []
     dates = []
     financials = sorted(financials, key=lambda x: datetime.strptime(x['start_date'], '%Y-%m-%d'))
 
     for item in financials:
 
+        filing_date = datetime.strptime(item['end_date'], '%Y-%m-%d')
         financial_info = item.get('financials', {})
         income_statement = financial_info.get('income_statement', {})
         basic_eps = income_statement.get('basic_earnings_per_share', {}).get('value', None)
+
+        # ipdb.set_trace()
+
+        for split in splits:
+            # ipdb.set_trace()
+            if datetime.strptime(split.date, '%Y-%m-%d') > filing_date:
+                basic_eps /= split.ratio
+
+        # ipdb.set_trace()
+        # item['financials']['income_statement']['basic_earnings_per_share']['value'] = basic_eps
+
         if basic_eps is not None:
             eps_values.append(basic_eps)
-            dates.append(item.get('start_date'))
+            dates.append(item.get('end_date'))
     
     # Generate the chart
     plt.figure(figsize=(10, 5))
@@ -156,41 +187,41 @@ def stock_eps(financials):
     graph = base64.b64encode(image_png)
     return graph.decode('utf-8')
 
-def stock_pe_ratios(financials):
-    pe_ratios = []
-    dates = []
-    financials = sorted(financials, key=lambda x: datetime.strptime(x['start_date'], '%Y-%m-%d'))
+# def stock_pe_ratios(financials):
+#     pe_ratios = []
+#     dates = []
+#     financials = sorted(financials, key=lambda x: datetime.strptime(x['start_date'], '%Y-%m-%d'))
 
-    for item in financials:
-        financial_info = item.get('financials', {})
-        income_statement = financial_info.get('income_statement', {})
-        basic_eps = income_statement.get('basic_earnings_per_share', {}).get('value', None)
-        revenues = income_statement.get('revenues', {}).get('value', None)
+#     for item in financials:
+#         financial_info = item.get('financials', {})
+#         income_statement = financial_info.get('income_statement', {})
+#         basic_eps = income_statement.get('basic_earnings_per_share', {}).get('value', None)
+#         revenues = income_statement.get('revenues', {}).get('value', None)
         
-        if basic_eps and revenues:
-            pe_ratio = revenues / basic_eps
-            pe_ratios.append(pe_ratio)
-            dates.append(item.get('start_date'))
+#         if basic_eps and revenues:
+#             pe_ratio = revenues / basic_eps
+#             pe_ratios.append(pe_ratio)
+#             dates.append(item.get('start_date'))
     
-    # Generate the chart
-    plt.figure(figsize=(10, 5))
-    plt.plot(dates, pe_ratios, marker='o')
-    plt.title(f'PE Ratio - Last 20 Quarters')
-    plt.xlabel('Date')
-    plt.ylabel('PE Ratio')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
+#     # Generate the chart
+#     plt.figure(figsize=(10, 5))
+#     plt.plot(dates, pe_ratios, marker='o')
+#     plt.title(f'PE Ratio - Last 20 Quarters')
+#     plt.xlabel('Date')
+#     plt.ylabel('PE Ratio')
+#     plt.xticks(rotation=45)
+#     plt.tight_layout()
     
-    # Save the chart to a BytesIO object
-    buffer = BytesIO()
-    plt.savefig(buffer, format='png')
-    buffer.seek(0)
-    image_png = buffer.getvalue()
-    buffer.close()
+#     # Save the chart to a BytesIO object
+#     buffer = BytesIO()
+#     plt.savefig(buffer, format='png')
+#     buffer.seek(0)
+#     image_png = buffer.getvalue()
+#     buffer.close()
     
-    # Encode the image to base64 string
-    graph = base64.b64encode(image_png)
-    return graph.decode('utf-8')
+#     # Encode the image to base64 string
+#     graph = base64.b64encode(image_png)
+#     return graph.decode('utf-8')
 
 def generate_stock_chart(data):
     stock_values = [item['c'] for item in data['results']]
@@ -219,6 +250,18 @@ def fetch_stock_data(start_date, end_date):
         return response.json()
     return None
 
+def calculate_pe_ratio(financials):
+    financials = sorted(financials, key=lambda x: datetime.strptime(x['start_date'], '%Y-%m-%d'))
+
+    annual_eps = 0
+    for report in financials[-4:]:
+        eps = report.get('financials', {}).get('income_statement', {}).get('basic_earnings_per_share', {}).get('value', 'N/A')
+        annual_eps += eps
+    print(annual_eps)
+    # url = f"https://api.polygon.io/vX/reference/financials?ticker={slug}&limit=1&timeframe=annual&apiKey=i91hbXrlrH8yM71UexYN_I4nsRX7pKir"
+    # # url = f"https://api.polygon.io/v3/reference/tickers/{slug}?apiKey=i91hbXrlrH8yM71UexYN_I4nsRX7pKir"
+    # response = requests.get(url)  
+    # return response.json()['results'][0]
 
 
 
