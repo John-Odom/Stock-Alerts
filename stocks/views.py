@@ -11,7 +11,7 @@ from io import BytesIO
 from datetime import date, datetime, timedelta
 from django.contrib.auth.decorators import login_required
 from .forms import StockTickerForm, DateRangeForm, AlertForm
-from .models import Alert
+from .models import Alert, Stock
 from .stock_split import StockSplit
 
 # Create your views here.
@@ -65,19 +65,22 @@ def stock_detail(request, slug):
         url = "https://api.polygon.io/v2/aggs/ticker/" + slug + "/range/1/day/2023-03-13/2025-06-14?sort=asc&apiKey=" + os.getenv('POLYGON_KEY')
 
     try:
+        db_stock = Stock.objects.filter(ticker=slug)[0]
+        print(f"stock - {db_stock.ticker}")
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
+        snapshot = most_recent_snapshot(slug)
+        # stock_price = data.get('results', []).get()
         stock = info_query(slug)
         splits = stock_splits(slug)
         financials = financials_query(slug)
-        print(stock['name'])
         return render(request, 'stock_detail.html', 
                       {'chart_uri': generate_stock_chart(data), 
                        'form': form,
                        'alert_form': alert_form,
                        'name': stock['name'],
-                       'price': price(data),
+                       'price': f"${snapshot['o']}",
                        'description': stock.get('description', ''),
                        'state': stock.get('address', {}).get('state', ''),
                        'market_cap':"${:,.2f}".format(stock.get('market_cap', 0)),
@@ -85,7 +88,8 @@ def stock_detail(request, slug):
                        'ticker': stock.get('ticker'),
                        'alerts': request.user.alerts.filter(symbol=slug),
                        'eps_graph': stock_eps(financials, splits),
-                       'pe_ratio': calculate_pe_ratio(financials),
+                       'pe_ratio': calculate_pe_ratio(financials, snapshot['o'], splits), # need to get price from last day object
+                       'sector': db_stock.sector_by_sic_code,
                        'news': getStockNews(slug)
                        })
     except requests.exceptions.RequestException as e:
@@ -101,6 +105,11 @@ def stock_splits(slug):
     
     # ipdb.set_trace()
     return splits
+
+def most_recent_snapshot(slug):
+    url = f"https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/{slug}?apiKey=i91hbXrlrH8yM71UexYN_I4nsRX7pKir"
+    response = requests.get(url)
+    return response.json()['ticker']['min']
 
 def delete_alert(request, id):
     if request.method == 'POST':
@@ -133,15 +142,6 @@ def financials_query(slug):
     
     return response.json()['results']
 
-def price(data):
-
-    results = data.get('results', [])
-    if len(results) > 0:
-        last_close = results[-1]
-        return f"${last_close['c']}"
-    else:
-        return "Unknown"
-
 def stock_eps(financials, splits):
     eps_values = []
     dates = []
@@ -152,7 +152,7 @@ def stock_eps(financials, splits):
         filing_date = datetime.strptime(item['end_date'], '%Y-%m-%d')
         financial_info = item.get('financials', {})
         income_statement = financial_info.get('income_statement', {})
-        basic_eps = income_statement.get('basic_earnings_per_share', {}).get('value', None)
+        basic_eps = income_statement.get('diluted_earnings_per_share', {}).get('value', None)
 
         # ipdb.set_trace()
 
@@ -162,7 +162,7 @@ def stock_eps(financials, splits):
                 basic_eps /= split.ratio
 
         # ipdb.set_trace()
-        # item['financials']['income_statement']['basic_earnings_per_share']['value'] = basic_eps
+        # item['financials']['income_statement']['diluted_earnings_per_share']['value'] = basic_eps
 
         if basic_eps is not None:
             eps_values.append(basic_eps)
@@ -196,7 +196,7 @@ def stock_eps(financials, splits):
 #     for item in financials:
 #         financial_info = item.get('financials', {})
 #         income_statement = financial_info.get('income_statement', {})
-#         basic_eps = income_statement.get('basic_earnings_per_share', {}).get('value', None)
+#         basic_eps = income_statement.get('diluted_earnings_per_share', {}).get('value', None)
 #         revenues = income_statement.get('revenues', {}).get('value', None)
         
 #         if basic_eps and revenues:
@@ -251,14 +251,16 @@ def fetch_stock_data(start_date, end_date):
         return response.json()
     return None
 
-def calculate_pe_ratio(financials):
+def calculate_pe_ratio(financials, price, splits):
     financials = sorted(financials, key=lambda x: datetime.strptime(x['start_date'], '%Y-%m-%d'))
 
     annual_eps = 0
     for report in financials[-4:]:
-        eps = report.get('financials', {}).get('income_statement', {}).get('basic_earnings_per_share', {}).get('value', 'N/A')
+        eps = report.get('financials', {}).get('income_statement', {}).get('diluted_earnings_per_share', {}).get('value', 0)
+
         annual_eps += eps
-    print(annual_eps)
+
+    return round(price/annual_eps, 2)
     # url = f"https://api.polygon.io/vX/reference/financials?ticker={slug}&limit=1&timeframe=annual&apiKey=i91hbXrlrH8yM71UexYN_I4nsRX7pKir"
     # # url = f"https://api.polygon.io/v3/reference/tickers/{slug}?apiKey=i91hbXrlrH8yM71UexYN_I4nsRX7pKir"
     # response = requests.get(url)  

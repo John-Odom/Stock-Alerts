@@ -85,25 +85,29 @@ def associateSicToTick():
 def sectorsWithSicCodes():
     load_dotenv()
     sectors = [
-        {'name': 'Basic Materials', 'sic_codes': range(1000, 1999)},
-        {'name': 'Consumer Goods', 'sic_codes': range(2000, 3999)},
-        {'name': 'Consumer Services', 'sic_codes': range(7000, 8999)},
-        {'name': 'Energy', 'sic_codes': range(2900,2999)},
-        {'name': 'Energy', 'sic_codes': range(1300,1399)},
-        {'name': 'Financials', 'sic_codes': range(6000,6799)},
-        {'name': 'Healthcare', 'sic_codes': range(8000,8099)},
-        {'name': 'Industrials', 'sic_codes': range(2000,3999)},
         {'name': 'Technology', 'sic_codes':  range(7370,7379)},
         {'name': 'Technology', 'sic_codes': range(3570,3579)},
         {'name': 'Technology', 'sic_codes': range(3600,3699)},
+        {'name': 'Energy', 'sic_codes': range(1300,1399)},
+        {'name': 'Energy', 'sic_codes': range(2900,2999)},
+        {'name': 'Industrials', 'sic_codes': range(3400, 3499)},
+        {'name': 'Industrials', 'sic_codes': range(3721, 3769)},
+        {'name': 'Consumer Goods', 'sic_codes': range(2000, 3999)},
+        {'name': 'Healthcare', 'sic_codes': range(8000,8099)},
+        {'name': 'Consumer Services', 'sic_codes': range(7000, 8999)},
+        {'name': 'Real Estate', 'sic_codes': range(6500, 6799)},
+        {'name': 'Financials', 'sic_codes': range(6000,6799)},
         {'name': 'Telecommunications', 'sic_codes': range(4800,4899)},
         {'name': 'Utilities', 'sic_codes': range(4900,4999)},
-        {'name': 'Real Estate', 'sic_codes': range(6500, 6799)},
+        {'name': 'Basic Materials', 'sic_codes': range(1000, 1999)},
     ]
 
     for sector in sectors:
         db_sector = Sector.objects.create(name=sector['name'])
         print(db_sector)
         for sic_code in sector['sic_codes']:
-            SicCode.objects.get_or_create(code=sic_code, sector=db_sector)
+            try:
+                SicCode.objects.get(code=sic_code)
+            except SicCode.DoesNotExist:
+                SicCode.objects.create(code=sic_code, sector=db_sector)
     

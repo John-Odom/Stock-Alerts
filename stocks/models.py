@@ -21,6 +21,13 @@ class Stock(models.Model):
     sic_code = models.IntegerField()
     sector = models.ForeignKey(Sector, null=True, blank=True, on_delete=models.SET_NULL)
 
+    def sector_by_sic_code(self):
+        if(self.sic_code == 0):
+            return ''
+        else:
+            db_sic_code = SicCode.objects.filter(code=self.sic_code)[0]
+            return db_sic_code.sector.name
+
     def __str__(self):
         return self.ticker
     
