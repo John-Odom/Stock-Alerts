@@ -7,7 +7,7 @@ from .utils import send_alert_email
 import requests
 import time
 import ipdb
-from stocks.models import Stock
+from stocks.models import Stock, Sector, SicCode
 
 
 
@@ -81,8 +81,29 @@ def associateSicToTick():
         print(sic)
         # time.sleep(10)
 
-# @shared_task
-# def associateSicToTick():
-#     load_dotenv()
+@shared_task
+def sectorsWithSicCodes():
+    load_dotenv()
+    sectors = [
+        {'name': 'Basic Materials', 'sic_codes': range(1000, 1999)},
+        {'name': 'Consumer Goods', 'sic_codes': range(2000, 3999)},
+        {'name': 'Consumer Services', 'sic_codes': range(7000, 8999)},
+        {'name': 'Energy', 'sic_codes': range(2900,2999)},
+        {'name': 'Energy', 'sic_codes': range(1300,1399)},
+        {'name': 'Financials', 'sic_codes': range(6000,6799)},
+        {'name': 'Healthcare', 'sic_codes': range(8000,8099)},
+        {'name': 'Industrials', 'sic_codes': range(2000,3999)},
+        {'name': 'Technology', 'sic_codes':  range(7370,7379)},
+        {'name': 'Technology', 'sic_codes': range(3570,3579)},
+        {'name': 'Technology', 'sic_codes': range(3600,3699)},
+        {'name': 'Telecommunications', 'sic_codes': range(4800,4899)},
+        {'name': 'Utilities', 'sic_codes': range(4900,4999)},
+        {'name': 'Real Estate', 'sic_codes': range(6500, 6799)},
+    ]
 
+    for sector in sectors:
+        db_sector = Sector.objects.create(name=sector['name'])
+        print(db_sector)
+        for sic_code in sector['sic_codes']:
+            SicCode.objects.get_or_create(code=sic_code, sector=db_sector)
     

@@ -10,9 +10,20 @@ class Alert(models.Model):
     def __str__(self):
         return f"{self.symbol} - {self.price}"
     
+class Sector(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
 class Stock(models.Model):
     ticker = models.CharField(max_length=10)
-    sic_code = models.CharField(max_length=10)
+    sic_code = models.IntegerField()
+    sector = models.ForeignKey(Sector, null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.ticker
+    
+class SicCode(models.Model):
+    code = models.IntegerField()
+    sector = models.ForeignKey(Sector, null=True, blank=True, on_delete=models.SET_NULL)
