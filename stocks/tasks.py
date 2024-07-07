@@ -41,7 +41,7 @@ def morning_stock_check():
             print(response_json['results'][0])
             if(alert.price > response_json['results'][0]['c']):
                 alert_recommendations.append(alert.symbol)
-        time.sleep(60) 
+        # time.sleep(60) 
     # CAN set up twilio or a similar service to receive texts or emails 
     send_alert_email('john.osborne.odom@gmail.com', 'BUY', "ALERT RECOMMENDATIONS: " + ', '.join(alert_recommendations))
     # return alert_recommendations
@@ -63,7 +63,7 @@ def getStocks(url=f"https://api.polygon.io/v3/reference/tickers?type=CS&market=s
         stock = Stock.objects.get_or_create(ticker=ticker['ticker'])
         print(stock)
 
-    time.sleep(30) 
+    # time.sleep(30) 
 
     if response.json()['next_url']:
         getStocks(response.json()['next_url'] + "&apiKey=" + os.getenv('POLYGON_KEY'))
@@ -79,5 +79,10 @@ def associateSicToTick():
         stock.sic_code= sic
         stock.save()
         print(sic)
-        time.sleep(10)
+        # time.sleep(10)
 
+# @shared_task
+# def associateSicToTick():
+#     load_dotenv()
+
+    
