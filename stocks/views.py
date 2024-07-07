@@ -1,5 +1,4 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.core.paginator import Paginator
 from django.http import JsonResponse
 import requests
 import ipdb
@@ -34,7 +33,6 @@ def stock_index_view(request):
         except requests.exceptions.RequestException as e:
             return JsonResponse({'error': str(e)}, status=500)
     else:
-        paginator = Paginator(stock_list, 10)
         form = StockTickerForm()
 
     return render(request, 'stocks.html', {'form': form, 'ticker_info': ticker_info, 'error_message': error_message})
