@@ -9,3 +9,10 @@ class Alert(models.Model):
 
     def __str__(self):
         return f"{self.symbol} - {self.price}"
+    
+class Stock(models.Model):
+    ticker = models.CharField(max_length=10)
+    sic_code = models.CharField(max_length=10)
+
+    def __str__(self):
+        return self.ticker

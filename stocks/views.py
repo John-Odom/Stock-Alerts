@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 import requests
 import ipdb
@@ -33,10 +34,11 @@ def stock_index_view(request):
         except requests.exceptions.RequestException as e:
             return JsonResponse({'error': str(e)}, status=500)
     else:
+        paginator = Paginator(stock_list, 10)
         form = StockTickerForm()
 
     return render(request, 'stocks.html', {'form': form, 'ticker_info': ticker_info, 'error_message': error_message})
-    
+
 def stock_detail(request, slug):
     slug = slug.upper()
     load_dotenv()
@@ -78,11 +80,11 @@ def stock_detail(request, slug):
                        'alert_form': alert_form,
                        'name': stock['name'],
                        'price': price(data),
-                       'description': stock['description'],
-                       'state': stock['address']['state'],
-                       'market_cap':"${:,.2f}".format(stock['market_cap']),
-                       'shares_outstanding': stock['share_class_shares_outstanding'],
-                       'ticker': stock['ticker'],
+                       'description': stock.get('description', ''),
+                       'state': stock.get('address', {}).get('state', ''),
+                       'market_cap':"${:,.2f}".format(stock.get('market_cap', 0)),
+                       'shares_outstanding': stock.get('share_class_shares_outstanding'),
+                       'ticker': stock.get('ticker'),
                        'alerts': request.user.alerts.filter(symbol=slug),
                        'eps_graph': stock_eps(financials, splits),
                        'pe_ratio': calculate_pe_ratio(financials),
@@ -123,6 +125,7 @@ def alerts(request):
 def info_query(slug):
     url = f"https://api.polygon.io/v3/reference/tickers/{slug}?apiKey=i91hbXrlrH8yM71UexYN_I4nsRX7pKir"
     response = requests.get(url)  
+    # use SIC codes to determine sector
     return response.json()['results']
 
 def financials_query(slug):
