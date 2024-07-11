@@ -39,8 +39,8 @@
                 <td>
                     <form class="form" action="{% url 'stocks:stock_detail' slug=stock.ticker %}" method="get">
                         <!-- {% csrf_token %} -->
-                        <input type="hidden" name="days" value="15">
-                        <input type="submit" value="15 day anaylsis">
+                        <!-- <input type="hidden" name="days" value="15"> -->
+                        <input type="submit" value="View">
                     </form>
                 </td>
             </tr>

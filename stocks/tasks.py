@@ -100,6 +100,7 @@ def sectorsWithSicCodes():
         {'name': 'Telecommunications', 'sic_codes': range(4800,4899)},
         {'name': 'Utilities', 'sic_codes': range(4900,4999)},
         {'name': 'Basic Materials', 'sic_codes': range(1000, 1999)},
+        {'name': 'Transportation', 'sic_codes': range(4000,4799)}
     ]
 
     for sector in sectors:
